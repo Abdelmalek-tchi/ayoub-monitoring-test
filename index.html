@@ -1,45 +1,73 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" data-theme="dark">
+<html lang="en" dir="ltr" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BarberPro | اتصال</title>
+  <title>BarberPro | Remote Dashboard</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💈</text></svg>">
 </head>
 <body>
   <div class="connection-page" id="app">
-    <div class="glass connection-card" id="connectView">
+    <div class="glass connection-card" id="loadingView" style="display:block;">
+      <div class="loading" style="padding:20px;">
+        <div class="spinner"></div>
+        Connecting...
+      </div>
+    </div>
+
+    <div class="glass connection-card" id="connectView" style="display:none;">
       <div class="logo">💈</div>
       <h1>BarberPro</h1>
-      <p>لوحة المراقبة عن بعد</p>
+      <p>Remote Monitoring Dashboard</p>
       <div class="input-group">
-        <label for="serverUrl"><i class="fas fa-server"></i> عنوان الخادم</label>
+        <label for="serverUrl"><i class="fas fa-server"></i> Server Address</label>
         <input type="text" id="serverUrl" placeholder="192.168.1.100:9000" dir="ltr" style="text-align:left;">
       </div>
       <button class="btn btn-primary" onclick="openDashboard()">
-        <i class="fas fa-external-link-alt"></i> فتح اللوحة
+        <i class="fas fa-external-link-alt"></i> Open Dashboard
       </button>
       <button class="btn" id="savedBtn" style="display:none;" onclick="openSaved()">
-        <i class="fas fa-history"></i> فتح المحفوظ
+        <i class="fas fa-history"></i> Reconnect
       </button>
       <div id="errorMsg" class="error"></div>
       <div class="connection-info">
         <i class="fas fa-info-circle"></i>
-        افتح التطبيق ← الإعدادات ← المراقبة عن بعد ← امسح QR أو انسخ الرابط
+        Run the desktop app → Settings → Remote Monitoring → scan QR or copy URL
       </div>
     </div>
   </div>
 
   <script src="js/connection.js"></script>
   <script>
+    async function trySameOrigin() {
+      const origin = window.location.origin;
+      if (origin.startsWith('http://') || origin.startsWith('https://')) {
+        try {
+          const resp = await fetch(origin + '/api/status', { headers: { 'Accept': 'application/json' } });
+          if (resp.ok) {
+            ConnectionManager.save({ url: origin, lastConnected: new Date().toISOString() });
+            window.location.href = 'dashboard.html';
+            return true;
+          }
+        } catch (_) {}
+      }
+      return false;
+    }
+
+    function showView(id) {
+      document.querySelectorAll('#app > .glass').forEach(v => v.style.display = 'none');
+      document.getElementById(id).style.display = 'block';
+    }
+
     function openDashboard() {
       const input = document.getElementById('serverUrl');
       const errorEl = document.getElementById('errorMsg');
       let url = input.value.trim();
-      if (!url) { errorEl.textContent = 'أدخل عنوان الخادم'; return; }
+      if (!url) { errorEl.textContent = 'Enter server address'; return; }
       if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'http://' + url;
+      errorEl.textContent = '';
       ConnectionManager.save({ url, lastConnected: new Date().toISOString() });
       window.location.href = url;
     }
@@ -52,7 +80,12 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
+      showView('loadingView');
+      const connected = await trySameOrigin();
+      if (connected) return;
+
+      showView('connectView');
       const s = ConnectionManager.load();
       if (s && s.url) {
         document.getElementById('serverUrl').value = s.url.replace(/^https?:\/\//, '');
