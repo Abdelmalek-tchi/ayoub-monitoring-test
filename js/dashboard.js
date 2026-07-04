@@ -603,8 +603,10 @@ async function initDashboard() {
 
   if (originUrl) {
     document.getElementById('serverUrl').textContent = originUrl.replace(/^https?:\/\//, '');
+    API.setBaseUrl('');
   } else if (saved && saved.url) {
     document.getElementById('serverUrl').textContent = saved.url.replace(/^https?:\/\//, '');
+    API.setBaseUrl(saved.url);
   } else {
     window.location.href = 'index.html';
     return;

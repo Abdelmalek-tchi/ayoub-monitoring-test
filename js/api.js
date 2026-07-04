@@ -1,6 +1,16 @@
 const API = {
+  _baseUrl: '',
+
+  setBaseUrl(url) {
+    this._baseUrl = url ? url.replace(/\/+$/, '') : '';
+  },
+
+  _url(endpoint) {
+    return this._baseUrl ? this._baseUrl + endpoint : endpoint;
+  },
+
   async _fetch(endpoint) {
-    const resp = await fetch(endpoint, {
+    const resp = await fetch(this._url(endpoint), {
       headers: { 'Accept': 'application/json' },
     });
     if (!resp.ok) {
@@ -10,24 +20,12 @@ const API = {
     return resp.json();
   },
 
-  async getStatus() {
-    return this._fetch('/api/status');
-  },
-  async getDashboard() {
-    return this._fetch('/api/dashboard');
-  },
-  async getCustomers() {
-    return this._fetch('/api/customers');
-  },
-  async getProducts() {
-    return this._fetch('/api/products');
-  },
-  async getTransactions() {
-    return this._fetch('/api/transactions');
-  },
-  async getStatistics(days) {
-    return this._fetch(`/api/statistics?days=${days || 7}`);
-  },
+  async getStatus() { return this._fetch('/api/status'); },
+  async getDashboard() { return this._fetch('/api/dashboard'); },
+  async getCustomers() { return this._fetch('/api/customers'); },
+  async getProducts() { return this._fetch('/api/products'); },
+  async getTransactions() { return this._fetch('/api/transactions'); },
+  async getStatistics(days) { return this._fetch(`/api/statistics?days=${days || 7}`); },
 };
 
 function respStatusText(code) {
