@@ -10,103 +10,56 @@
 </head>
 <body>
   <div class="connection-page" id="app">
-    <div class="glass connection-card" id="connectingView" style="display:none;">
-      <div class="loading" style="padding:20px;">
-        <div class="spinner"></div>
-        جاري الاتصال بالخادم...
-      </div>
-    </div>
-
     <div class="glass connection-card" id="connectView">
       <div class="logo">💈</div>
       <h1>BarberPro</h1>
       <p>لوحة المراقبة عن بعد</p>
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">
-        أدخل عنوان الخادم (IP:port) للاتصال بالتطبيق
-      </p>
       <div class="input-group">
         <label for="serverUrl"><i class="fas fa-server"></i> عنوان الخادم</label>
         <input type="text" id="serverUrl" placeholder="192.168.1.100:9000" dir="ltr" style="text-align:left;">
       </div>
-      <button class="btn btn-primary" id="connectBtn" onclick="handleConnect()">
-        <i class="fas fa-plug"></i> اتصال
+      <button class="btn btn-primary" onclick="openDashboard()">
+        <i class="fas fa-external-link-alt"></i> فتح اللوحة
       </button>
-      <button class="btn" id="savedBtn" style="display:none;" onclick="handleSaved()">
-        <i class="fas fa-history"></i> الاتصال بالخادم المحفوظ
+      <button class="btn" id="savedBtn" style="display:none;" onclick="openSaved()">
+        <i class="fas fa-history"></i> فتح المحفوظ
       </button>
       <div id="errorMsg" class="error"></div>
-      <div id="loadingMsg" class="loading" style="display:none;padding:12px;">
-        <div class="spinner"></div> جاري الاتصال...
-      </div>
       <div class="connection-info">
         <i class="fas fa-info-circle"></i>
-        تأكد من تشغيل الخادم في التطبيق (الإعدادات ← المراقبة عن بعد)
+        افتح التطبيق ← الإعدادات ← المراقبة عن بعد ← امسح QR أو انسخ الرابط
       </div>
     </div>
   </div>
 
-  <script src="js/api.js"></script>
   <script src="js/connection.js"></script>
   <script>
-    function showView(id) {
-      document.querySelectorAll('#app > .glass').forEach(v => v.style.display = 'none');
-      document.getElementById(id).style.display = 'block';
-    }
-
-    async function tryOrigin() {
-      if (!ConnectionManager.isSameOrigin()) return false;
-      const origin = ConnectionManager.getOriginUrl();
-      try {
-        const resp = await fetch(origin + '/api/status', { headers: { 'Accept': 'application/json' } });
-        if (resp.ok) {
-          ConnectionManager.save({ url: origin, lastConnected: new Date().toISOString() });
-          window.location.href = 'dashboard.html';
-          return true;
-        }
-      } catch (_) {}
-      return false;
-    }
-
-    async function handleConnect() {
+    function openDashboard() {
       const input = document.getElementById('serverUrl');
       const errorEl = document.getElementById('errorMsg');
-      const loadingEl = document.getElementById('loadingMsg');
       let url = input.value.trim();
-      if (!url) { errorEl.textContent = 'يرجى إدخال عنوان الخادم'; return; }
+      if (!url) { errorEl.textContent = 'أدخل عنوان الخادم'; return; }
       if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'http://' + url;
-      errorEl.textContent = '';
-      loadingEl.style.display = 'flex';
-      try {
-        await ConnectionManager.connect(url);
-        window.location.href = 'dashboard.html';
-      } catch (err) {
-        errorEl.textContent = 'خطأ في الاتصال: ' + (err.message || 'تعذر الاتصال');
-      } finally {
-        loadingEl.style.display = 'none';
+      ConnectionManager.save({ url, lastConnected: new Date().toISOString() });
+      window.location.href = url;
+    }
+
+    function openSaved() {
+      const s = ConnectionManager.load();
+      if (s && s.url) {
+        document.getElementById('serverUrl').value = s.url.replace(/^https?:\/\//, '');
+        openDashboard();
       }
     }
 
-    function handleSaved() {
-      const saved = ConnectionManager.load();
-      if (saved && saved.url) {
-        document.getElementById('serverUrl').value = saved.url.replace(/^https?:\/\//, '');
-        handleConnect();
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', async function() {
-      showView('connectingView');
-      const connected = await tryOrigin();
-      if (connected) return;
-
-      showView('connectView');
-      const saved = ConnectionManager.load();
-      if (saved && saved.url) {
-        document.getElementById('serverUrl').value = saved.url.replace(/^https?:\/\//, '');
-        document.getElementById('savedBtn').style.display = 'flex';
+    document.addEventListener('DOMContentLoaded', function() {
+      const s = ConnectionManager.load();
+      if (s && s.url) {
+        document.getElementById('serverUrl').value = s.url.replace(/^https?:\/\//, '');
+        document.getElementById('savedBtn').style.display = 'inline-flex';
       }
       document.getElementById('serverUrl').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') handleConnect();
+        if (e.key === 'Enter') openDashboard();
       });
     });
   </script>
